@@ -57,6 +57,10 @@ class TORCH_API TensorExprKernel {
     return graph_;
   }
 
+  std::vector<ConstantDescr> getConstantDescriptors() const {
+    return constants_;
+  };
+
  private:
   enum ElementType {
     kAllTypes = 0,
@@ -78,7 +82,6 @@ class TORCH_API TensorExprKernel {
 
   void compile();
   void genInputDebugNames();
-
   void runKernel(Stack& stack);
 
   std::vector<DimArg> dimsFromSizes(const std::vector<ExprHandle>& sizes);
