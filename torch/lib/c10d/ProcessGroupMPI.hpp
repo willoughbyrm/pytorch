@@ -26,12 +26,10 @@ struct WorkEntry {
       std::vector<at::Tensor>* srcPtr,
       std::vector<at::Tensor>* dstPtr,
       std::function<void(std::unique_ptr<WorkEntry>&)> run)
-      : run(run) {
+      : dst(dstPtr ? *dstPtr : std::vector<at::Tensor>()),
+        run(run) {
     if (srcPtr) {
       src = *srcPtr;
-    }
-    if (dstPtr) {
-      dst = *dstPtr;
     }
   }
 
@@ -42,7 +40,11 @@ struct WorkEntry {
 
   // For input and output tensors (in-place), we will always use src
   std::vector<at::Tensor> src;
-  std::vector<at::Tensor> dst;
+
+  // We use `dst` for returning resulting vectors in WorkMPI::result, so we need to
+  // keep it alive.
+  const std::vector<at::Tensor> dst;
+
   // src rank returned, for recv only
   int* srcRank = nullptr;
   std::function<void(std::unique_ptr<WorkEntry>&)> run;
@@ -77,6 +79,7 @@ class ProcessGroupMPI : public ProcessGroup {
   class WorkMPI : public ProcessGroup::Work {
    public:
     WorkMPI(
+        std::vector<at::Tensor> outputTensors,
         const char* profilingTitle = nullptr,
         const c10::optional<std::vector<at::Tensor>>& inputTensors =
             c10::nullopt)
@@ -84,17 +87,23 @@ class ProcessGroupMPI : public ProcessGroup {
               -1,
               OpType::UNKNOWN,
               profilingTitle,
-              inputTensors) {}
+              inputTensors),
+          outputTensors_(outputTensors) {}
+
+   virtual std::vector<at::Tensor> result() override;
 
    protected:
     friend class ProcessGroupMPI;
+
+   private:
+    std::vector<at::Tensor> outputTensors_;
   };
 
   class AsyncWork : public ProcessGroup::Work {
    public:
     AsyncWork(
-        at::Tensor tensor,
         MPI_Request request,
+        const std::vector<at::Tensor>* outputTensors,
         const char* profilingTitle = nullptr,
         const c10::optional<std::vector<at::Tensor>>& inputTensors =
             c10::nullopt);
@@ -111,10 +120,12 @@ class ProcessGroupMPI : public ProcessGroup {
 
     void abort() override;
 
+   virtual std::vector<at::Tensor> result() override;
+
    protected:
     void populateException();
 
-    at::Tensor tensor_;
+    const std::vector<at::Tensor>* outputTensors_;
     MPI_Request request_;
     MPI_Status status_;
   };
