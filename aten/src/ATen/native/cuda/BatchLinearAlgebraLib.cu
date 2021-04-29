@@ -720,6 +720,7 @@ void apply_lu_cusolver_looped(Tensor& self, Tensor& pivots, Tensor& infos, bool 
       }
     }
   });
+  at::nan_to_num_(self);
 }
 
 template <typename scalar_t>
