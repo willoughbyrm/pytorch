@@ -859,6 +859,7 @@ void apply_lu_cusolver_looped(Tensor& self, Tensor& pivots, Tensor& infos, bool 
       }
     }
   });
+  std::cout << "calling nan_to_num_\n";
   at::nan_to_num_(self);
 }
 

@@ -5189,6 +5189,7 @@ class TestLinalg(TestCase):
                     rows, columns = matrix_size
                 if a is None:
                     a = random_matrix(rows, columns, *batches, **dict(singular=singular, dtype=dtype)).to(device)
+                print(a)
                 a_LU_info, pivots_info, info_ = a.lu(pivot=pivot, get_infos=True)
                 self.assertEqual(a_LU_info.size(), torch.Size(batches + (rows, columns)))
                 self.assertEqual(pivots_info.size(), torch.Size(batches + (min(rows, columns),)))
@@ -5198,6 +5199,8 @@ class TestLinalg(TestCase):
                 # 0. This however conveys that the factorization was
                 # successful albeit with a singular input. Therefore,
                 # we require info.min() >= 0
+
+                print(info_)
                 self.assertGreaterEqual(info_.min(), 0)
                 a_LU, pivots = a.lu(pivot=pivot)
                 self.assertEqual(a_LU, a_LU_info)
