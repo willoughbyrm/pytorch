@@ -1,5 +1,6 @@
 #include <ATen/Context.h>
 #include <ATen/cuda/CUDAContext.h>
+#include <ATen/cuda/CUDASolver.h>
 #include <ATen/Dispatch.h>
 #include <ATen/NativeFunctions.h>
 #include <ATen/cuda/PinnedMemoryAllocator.h>
@@ -1864,7 +1865,11 @@ std::tuple<Tensor, Tensor, Tensor> _lu_with_info_cuda(const Tensor& self, bool p
   auto req_size = self.sizes().vec();
   req_size.pop_back();
   req_size.back() = k;
+#ifdef USE_CUSOLVER_64_BIT
+  Tensor pivots_tensor = at::arange(1, k + 1, self.options().dtype(at::kLong)).expand(req_size).contiguous();
+#else
   Tensor pivots_tensor = at::arange(1, k + 1, self.options().dtype(at::kInt)).expand(req_size).contiguous();
+#endif
   req_size.pop_back();
   auto infos_tensor = at::zeros(req_size, self.options().dtype(at::kInt));
   auto batch_size = cuda_int_cast(batchCount(self), "batch size");
